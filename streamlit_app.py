@@ -1,38 +1,55 @@
-from collections import namedtuple
-import altair as alt
-import math
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import os
 
-"""
-# Welcome to Streamlit!
+# Function to merge Excel files based on selected columns
+def merge_excel_files(files, selected_columns):
+    dfs = []
+    for file in files:
+        df = pd.read_excel(file)
+        dfs.append(df)
+    
+    merged_df = pd.concat(dfs, ignore_index=True, sort=False)
+    merged_df = merged_df.groupby(selected_columns).sum().reset_index()
+    return merged_df
 
-Edit `/streamlit_app.py` to customize this app to your heart's desire :heart:
+# Streamlit app
+st.title("Excel File Merger App")
 
-If you have any questions, checkout our [documentation](https://docs.streamlit.io) and [community
-forums](https://discuss.streamlit.io).
+# Upload multiple Excel files
+st.sidebar.header("Upload Excel Files")
+uploaded_files = st.sidebar.file_uploader("Upload your Excel files", type=["xlsx"], accept_multiple_files=True)
 
-In the meantime, below is an example of what you can do with just a few lines of code:
-"""
+# Common columns selection
+st.sidebar.header("Select Columns for Merge")
+selected_columns = st.sidebar.multiselect("Select columns for merging", [])  # Corrected line
 
+# Choose output format
+st.sidebar.header("Choose Output Format")
+output_format = st.sidebar.selectbox("Select output format", ["Excel (.xlsx)", "CSV (.csv)"])
 
-with st.echo(code_location='below'):
-    total_points = st.slider("Number of points in spiral", 1, 5000, 2000)
-    num_turns = st.slider("Number of turns in spiral", 1, 100, 9)
+# Merge and display the result
+if st.sidebar.button("Merge Excel Files"):
+    if not selected_columns:
+        st.warning("Please select at least one column for merging.")
+    elif len(uploaded_files) < 2:
+        st.warning("Please upload at least two Excel files.")
+    else:
+        merged_df = merge_excel_files(uploaded_files, selected_columns)
+        st.subheader("Merged Data:")
+        st.write(merged_df)
+        
+        # Download button
+        st.sidebar.subheader("Download Merged Data")
+        if output_format == "Excel (.xlsx)":
+            csv = merged_df.to_excel(index=False)
+            st.sidebar.download_button("Download as Excel", csv, key="excel_download")
+        elif output_format == "CSV (.csv)":
+            csv = merged_df.to_csv(index=False)
+            st.sidebar.download_button("Download as CSV", csv, key="csv_download")
 
-    Point = namedtuple('Point', 'x y')
-    data = []
-
-    points_per_turn = total_points / num_turns
-
-    for curr_point_num in range(total_points):
-        curr_turn, i = divmod(curr_point_num, points_per_turn)
-        angle = (curr_turn + 1) * 2 * math.pi * i / points_per_turn
-        radius = curr_point_num / total_points
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        data.append(Point(x, y))
-
-    st.altair_chart(alt.Chart(pd.DataFrame(data), height=500, width=500)
-        .mark_circle(color='#0068c9', opacity=0.5)
-        .encode(x='x:Q', y='y:Q'))
+# For debugging purposes, you can display uploaded file names
+if uploaded_files:
+    st.sidebar.subheader("Uploaded Files:")
+    for file in uploaded_files:
+        st.sidebar.write(file.name)
