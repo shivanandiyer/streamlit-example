@@ -28,6 +28,14 @@ selected_columns = st.sidebar.multiselect("Select columns for merging", [])  # C
 st.sidebar.header("Choose Output Format")
 output_format = st.sidebar.selectbox("Select output format", ["Excel (.xlsx)", "CSV (.csv)"])
 
+# Display uploaded data
+st.sidebar.subheader("Uploaded Data")
+if uploaded_files:
+    for file in uploaded_files:
+        st.sidebar.write(file.name)
+        df = pd.read_excel(file)
+        st.dataframe(df)
+
 # Merge and display the result
 if st.sidebar.button("Merge Excel Files"):
     if not selected_columns:
@@ -37,7 +45,7 @@ if st.sidebar.button("Merge Excel Files"):
     else:
         merged_df = merge_excel_files(uploaded_files, selected_columns)
         st.subheader("Merged Data:")
-        st.write(merged_df)
+        st.dataframe(merged_df)
         
         # Download button
         st.sidebar.subheader("Download Merged Data")
@@ -47,9 +55,3 @@ if st.sidebar.button("Merge Excel Files"):
         elif output_format == "CSV (.csv)":
             csv = merged_df.to_csv(index=False)
             st.sidebar.download_button("Download as CSV", csv, key="csv_download")
-
-# For debugging purposes, you can display uploaded file names
-if uploaded_files:
-    st.sidebar.subheader("Uploaded Files:")
-    for file in uploaded_files:
-        st.sidebar.write(file.name)
